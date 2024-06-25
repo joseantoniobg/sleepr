@@ -12,9 +12,12 @@ export class ReservationsService {
               @Inject(PAYMENTS_SERVICE) private readonly paymentsService: ClientProxy,
   ) {}
 
-  async create(createReservationDto: CreateReservationDto, userId: string) {
+  async create(createReservationDto: CreateReservationDto, { email, _id: userId }: UserDto) {
     return this.paymentsService
-        .send('create_charge', createReservationDto.charge)
+        .send('create_charge', {
+          ...createReservationDto.charge,
+          email,
+        })
         .pipe(map(async (response) => {
           return await this.reservationsRepository.create({
             ...createReservationDto,

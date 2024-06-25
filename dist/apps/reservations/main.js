@@ -164,7 +164,7 @@ let ReservationsController = class ReservationsController {
         this.reservationsService = reservationsService;
     }
     async create(createReservationDto, currentUser) {
-        return this.reservationsService.create(createReservationDto, currentUser._id);
+        return this.reservationsService.create(createReservationDto, currentUser);
     }
     async findAll() {
         return this.reservationsService.findAll();
@@ -383,9 +383,9 @@ let ReservationsService = class ReservationsService {
         this.reservationsRepository = reservationsRepository;
         this.paymentsService = paymentsService;
     }
-    async create(createReservationDto, userId) {
+    async create(createReservationDto, { email, _id: userId }) {
         return this.paymentsService
-            .send('create_charge', createReservationDto.charge)
+            .send('create_charge', Object.assign(Object.assign({}, createReservationDto.charge), { email }))
             .pipe((0, rxjs_1.map)(async (response) => {
             return await this.reservationsRepository.create(Object.assign(Object.assign({}, createReservationDto), { invoiceId: response.id, timestamp: new Date(), userId }));
         }));
@@ -528,9 +528,10 @@ __exportStar(__webpack_require__(/*! ./services */ "./libs/common/src/constants/
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
+exports.NOTIFICATIONS_SERVICE = exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
 exports.AUTH_SERVICE = 'auth';
 exports.PAYMENTS_SERVICE = 'payments';
+exports.NOTIFICATIONS_SERVICE = 'notifications';
 
 
 /***/ }),

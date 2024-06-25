@@ -2,6 +2,37 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./apps/payments/src/dto/payments-create-charge.dto.ts":
+/*!*************************************************************!*\
+  !*** ./apps/payments/src/dto/payments-create-charge.dto.ts ***!
+  \*************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PaymentsCreateChargeDto = void 0;
+const common_1 = __webpack_require__(/*! @app/common */ "./libs/common/src/index.ts");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+class PaymentsCreateChargeDto extends common_1.CreateChargeDto {
+}
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], PaymentsCreateChargeDto.prototype, "email", void 0);
+exports.PaymentsCreateChargeDto = PaymentsCreateChargeDto;
+
+
+/***/ }),
+
 /***/ "./apps/payments/src/payments.controller.ts":
 /*!**************************************************!*\
   !*** ./apps/payments/src/payments.controller.ts ***!
@@ -27,7 +58,7 @@ exports.PaymentsController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const payments_service_1 = __webpack_require__(/*! ./payments.service */ "./apps/payments/src/payments.service.ts");
 const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
-const common_2 = __webpack_require__(/*! @app/common */ "./libs/common/src/index.ts");
+const payments_create_charge_dto_1 = __webpack_require__(/*! ./dto/payments-create-charge.dto */ "./apps/payments/src/dto/payments-create-charge.dto.ts");
 let PaymentsController = class PaymentsController {
     constructor(paymentsService) {
         this.paymentsService = paymentsService;
@@ -41,7 +72,7 @@ __decorate([
     (0, common_1.UsePipes)(new common_1.ValidationPipe()),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_b = typeof common_2.CreateChargeDto !== "undefined" && common_2.CreateChargeDto) === "function" ? _b : Object]),
+    __metadata("design:paramtypes", [typeof (_b = typeof payments_create_charge_dto_1.PaymentsCreateChargeDto !== "undefined" && payments_create_charge_dto_1.PaymentsCreateChargeDto) === "function" ? _b : Object]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "createCharge", null);
 PaymentsController = __decorate([
@@ -74,6 +105,7 @@ const payments_service_1 = __webpack_require__(/*! ./payments.service */ "./apps
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const Joi = __webpack_require__(/*! joi */ "joi");
 const common_2 = __webpack_require__(/*! @app/common */ "./libs/common/src/index.ts");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
 let PaymentsModule = class PaymentsModule {
 };
 PaymentsModule = __decorate([
@@ -83,9 +115,22 @@ PaymentsModule = __decorate([
                 validationSchema: Joi.object({
                     PORT: Joi.number().required(),
                     STRIPE_SECRET_KEY: Joi.string().required(),
+                    NOTIFICATIONS_HOST: Joi.string().required(),
+                    NOTIFICATIONS_PORT: Joi.number().required(),
                 })
             }),
             common_2.LoggerModule,
+            microservices_1.ClientsModule.registerAsync([{
+                    name: common_2.NOTIFICATIONS_SERVICE,
+                    useFactory: (configService) => ({
+                        transport: microservices_1.Transport.TCP,
+                        options: {
+                            host: configService.get('NOTIFICATIONS_HOST'),
+                            port: configService.get('NOTIFICATIONS_PORT'),
+                        }
+                    }),
+                    inject: [config_1.ConfigService],
+                }])
         ],
         controllers: [payments_controller_1.PaymentsController],
         providers: [payments_service_1.PaymentsService],
@@ -112,15 +157,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PaymentsService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
 const stripe_1 = __webpack_require__(/*! stripe */ "stripe");
+const common_2 = __webpack_require__(/*! @app/common */ "./libs/common/src/index.ts");
 let PaymentsService = class PaymentsService {
-    constructor(configService) {
+    constructor(configService, notificationsService) {
         this.configService = configService;
+        this.notificationsService = notificationsService;
         this.stripeService = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY'), {
             apiVersion: '2024-04-10',
         });
@@ -139,12 +190,14 @@ let PaymentsService = class PaymentsService {
             payment_method_types: ['card'],
             currency: 'usd',
         });
+        this.notificationsService.emit('notify_email', { email: data.email });
         return paymentIntent;
     }
 };
 PaymentsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+    __param(1, (0, common_1.Inject)(common_2.NOTIFICATIONS_SERVICE)),
+    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _b : Object])
 ], PaymentsService);
 exports.PaymentsService = PaymentsService;
 
@@ -266,9 +319,10 @@ __exportStar(__webpack_require__(/*! ./services */ "./libs/common/src/constants/
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
+exports.NOTIFICATIONS_SERVICE = exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
 exports.AUTH_SERVICE = 'auth';
 exports.PAYMENTS_SERVICE = 'payments';
+exports.NOTIFICATIONS_SERVICE = 'notifications';
 
 
 /***/ }),

@@ -706,9 +706,10 @@ __exportStar(__webpack_require__(/*! ./services */ "./libs/common/src/constants/
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
+exports.NOTIFICATIONS_SERVICE = exports.PAYMENTS_SERVICE = exports.AUTH_SERVICE = void 0;
 exports.AUTH_SERVICE = 'auth';
 exports.PAYMENTS_SERVICE = 'payments';
+exports.NOTIFICATIONS_SERVICE = 'notifications';
 
 
 /***/ }),
